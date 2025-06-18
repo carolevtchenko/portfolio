@@ -1,0 +1,266 @@
+import { useState, useEffect } from "react"
+import { addPropertyControls, ControlType } from "framer"
+
+export default function MemoryGameComplementar(props) {
+    const [isDarkMode, setIsDarkMode] = useState(false)
+
+    useEffect(() => {
+        const matcher = window.matchMedia("(prefers-color-scheme: dark)")
+        setIsDarkMode(matcher.matches)
+
+        const listener = (e) => setIsDarkMode(e.matches)
+        matcher.addEventListener("change", listener)
+
+        return () => matcher.removeEventListener("change", listener)
+    }, [])
+
+    const rawPairs = props.pares
+        .split("|")
+        .map((pair, index) => {
+            const [front, match] = pair.split(";")
+            return [
+                {
+                    id: index * 2 + 1,
+                    front: front.trim(),
+                    match: match.trim(),
+                    number: index + 1,
+                    isAnswer: false,
+                },
+                {
+                    id: index * 2 + 2,
+                    front: match.trim(),
+                    match: front.trim(),
+                    number: index + 1,
+                    isAnswer: true,
+                },
+            ]
+        })
+        .flat()
+
+    const shuffledCards = rawPairs.sort(() => Math.random() - 0.5)
+
+    const [cards, setCards] = useState(
+        shuffledCards.map((card) => ({
+            ...card,
+            flipped: false,
+            matched: false,
+            filledFront: card.front,
+        }))
+    )
+
+    const [flippedCards, setFlippedCards] = useState([])
+
+    const handleCardClick = (card) => {
+        if (card.flipped || card.matched || flippedCards.length === 2) return
+
+        const newCards = cards.map((c) =>
+            c.id === card.id ? { ...c, flipped: true } : c
+        )
+        setCards(newCards)
+
+        const newFlipped = [...flippedCards, card]
+        setFlippedCards(newFlipped)
+    }
+
+    useEffect(() => {
+        if (flippedCards.length === 2) {
+            const [first, second] = flippedCards
+            if (first.match === second.front || second.match === first.front) {
+                setTimeout(() => {
+                    setCards((prev) =>
+                        prev.map((c) => {
+                            if (c.id === first.id || c.id === second.id) {
+                                let updatedFront = c.filledFront
+                                if (
+                                    !c.isAnswer &&
+                                    c.front.includes("________")
+                                ) {
+                                    const answerText = first.isAnswer
+                                        ? first.front
+                                        : second.front
+                                    const lowercaseAnswer =
+                                        answerText.charAt(0).toLowerCase() +
+                                        answerText.slice(1)
+                                    updatedFront = c.front.replace(
+                                        "________",
+                                        `<strong>${lowercaseAnswer}</strong>`
+                                    )
+                                }
+                                if (c.isAnswer) {
+                                    updatedFront = `<span style="font-size:32px;">✅</span>`
+                                }
+                                return {
+                                    ...c,
+                                    matched: true,
+                                    filledFront: updatedFront,
+                                }
+                            }
+                            return c
+                        })
+                    )
+                    setFlippedCards([])
+                }, props.delay)
+            } else {
+                setTimeout(() => {
+                    setCards((prev) =>
+                        prev.map((c) =>
+                            c.id === first.id || c.id === second.id
+                                ? { ...c, flipped: false }
+                                : c
+                        )
+                    )
+                    setFlippedCards([])
+                }, props.delay)
+            }
+        }
+    }, [flippedCards])
+
+    // ✅ Rola para a seção final quando tudo estiver combinado
+    useEffect(() => {
+        const allMatched = cards.length > 0 && cards.every((c) => c.matched)
+        if (allMatched) {
+            setTimeout(() => {
+                const target = document.querySelector("#fim-do-jogo")
+                if (target) {
+                    target.scrollIntoView({ behavior: "smooth" })
+                }
+            }, 600)
+        }
+    }, [cards])
+
+    const columnCount = 5
+    const gap = props.gap
+    const totalHorizontalGap = (columnCount - 1) * gap
+    const cardWidth = `calc((100vw - 64px - ${totalHorizontalGap}px) / ${columnCount})`
+    const cardHeight = `calc(${cardWidth} * 0.6)`
+
+    return (
+        <div
+            style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${columnCount}, ${cardWidth})`,
+                gap: `${gap}px`,
+                justifyContent: "center",
+                alignContent: "start",
+                padding: "32px",
+                background: props.background,
+                borderRadius: "12px",
+                maxWidth: "100vw",
+                maxHeight: "100vh",
+                boxSizing: "border-box",
+                fontFamily: "Manrope, sans-serif",
+            }}
+        >
+            {cards.map((card) => {
+                const isMatched = card.matched
+                const isAnswer = card.isAnswer
+
+                let bgColor = props.cardBack
+                let textColor = props.cardText
+
+                if (isMatched) {
+                    bgColor = "#CFF7D3"
+                    textColor = "#000"
+                } else if (card.flipped) {
+                    bgColor = props.cardFront
+                }
+
+                return (
+                    <div
+                        key={card.id}
+                        onClick={() => handleCardClick(card)}
+                        style={{
+                            position: "relative",
+                            width: cardWidth,
+                            height: cardHeight,
+                            background: bgColor,
+                            color: textColor,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "14px",
+                            textAlign: "center",
+                            padding: "16px",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            border: "0px solid #DDD",
+                            userSelect: "none",
+                            transition: "transform 0.2s",
+                            transform:
+                                card.flipped || card.matched
+                                    ? "rotateY(0deg)"
+                                    : "rotateY(180deg)",
+                            fontFamily: "Manrope, sans-serif",
+                        }}
+                        dangerouslySetInnerHTML={{
+                            __html:
+                                card.flipped || card.matched
+                                    ? `
+                  <span style="position:absolute;top:4px;right:8px;font-size:12px;color:${textColor};">${card.number}</span>
+                  ${
+                      isAnswer
+                          ? `<span style="font-weight:bold;font-size:16px;color:${textColor};">${card.filledFront}</span>`
+                          : `<span style="position:absolute;bottom:8px;left:8px;width:calc(100% - 16px);text-align:left;color:${textColor};">${card.filledFront}</span>`
+                  }
+                `
+                                    : "",
+                        }}
+                    ></div>
+                )
+            })}
+        </div>
+    )
+}
+
+addPropertyControls(MemoryGameComplementar, {
+    pares: {
+        type: ControlType.String,
+        title: "Pares (Frase;Resposta | ...)",
+        defaultValue:
+            "Estudo ________ artesanal para exercitar a paciência e a criatividade;Cerâmica|" +
+            "Sou ________, falo português, inglês, espanhol e francês;Poliglota|" +
+            "Quero aprender mais sobre ________ porque saber ajuda no Design;Desenvolvimento|" +
+            "Gosto de viajar de ________ com o meu namorado e nossas cachorras;Motorhome|" +
+            "Minha mãe é fotógrafa e desde criança gosto muito da ________ analógica;Fotografia|" +
+            "Quero fazer ________ conectando Design e Relações Internacionais;Mestrado|" +
+            "Minha disciplina favorita no Design é ________ da informação;Arquitetura|" +
+            "Já ________ fora do Brasil duas vezes, na Espanha e nos EUA;Morei|" +
+            "Tenho três ________, a Azeitona, a Carlota e a Pandora;Cachorras|" +
+            "Sempre me perguntam de onde é meu sobrenome, é da ________;Ucrânia",
+    },
+    gap: {
+        type: ControlType.Number,
+        title: "Espaçamento",
+        min: 4,
+        max: 30,
+        defaultValue: 12,
+    },
+    background: {
+        type: ControlType.Color,
+        title: "Fundo",
+        defaultValue: "#111",
+    },
+    cardBack: {
+        type: ControlType.Color,
+        title: "Cor Verso",
+        defaultValue: "#444",
+    },
+    cardFront: {
+        type: ControlType.Color,
+        title: "Cor Frente",
+        defaultValue: "#fff",
+    },
+    cardText: {
+        type: ControlType.Color,
+        title: "Cor Texto",
+        defaultValue: "#000",
+    },
+    delay: {
+        type: ControlType.Number,
+        title: "Delay (ms)",
+        min: 300,
+        max: 2000,
+        defaultValue: 800,
+    },
+})
+
