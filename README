@@ -1,0 +1,17 @@
+# Backup do WordPress
+
+Este backup completo do meu portfólio antigo em WordPress está disponível para download no Google Drive.
+
+🔗 https://drive.google.com/drive/folders/1aVYvRuCcCYcetPrQ0Qv0e8JzLaVJsEtz
+
+> Para extrair corretamente, baixe todos os arquivos da pasta e extraia `backup1.zip` com WinRAR, 7-Zip ou The Unarchiver (Mac).
+
+---
+
+### 📁 Conteúdo incluído
+
+- Tema personalizado usado no site
+- Imagens da pasta `uploads/`
+- Arquivos do WordPress (`wp-admin`, `wp-content`, `wp-includes`)
+- Banco de dados (`banco.sql`)
+
