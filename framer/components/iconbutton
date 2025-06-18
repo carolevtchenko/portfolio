@@ -1,0 +1,57 @@
+import * as React from "react"
+import { addPropertyControls, ControlType } from "framer"
+
+// Carrega Iconify uma vez
+if (
+    typeof window !== "undefined" &&
+    !document.getElementById("iconify-script")
+) {
+    const script = document.createElement("script")
+    script.id = "iconify-script"
+    script.src = "https://code.iconify.design/3/3.1.0/iconify.min.js"
+    script.async = true
+    document.head.appendChild(script)
+}
+
+function IconButton({ iconName }) {
+    const [isHover, setIsHover] = React.useState(false)
+
+    return (
+        <button
+            onMouseEnter={() => setIsHover(true)}
+            onMouseLeave={() => setIsHover(false)}
+            style={{
+                backgroundColor: isHover ? "#F9B29E" : "#FFFFFF", // Fundo muda para F9B29E
+                border: "none",
+                borderRadius: 16,
+                padding: "8px 16px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background-color 0.2s ease",
+            }}
+        >
+            <span
+                className="iconify"
+                data-icon={iconName}
+                data-inline="false"
+                style={{
+                    fontSize: 32,
+                    "--iconify-color": isHover ? "#FFFFFF" : "#000000", // Ícone muda para branco no hover
+                    transition: "color 0.2s ease",
+                }}
+            />
+        </button>
+    )
+}
+
+addPropertyControls(IconButton, {
+    iconName: {
+        type: ControlType.String,
+        title: "Ícone",
+        defaultValue: "mdi:home",
+    },
+})
+
+export default IconButton
